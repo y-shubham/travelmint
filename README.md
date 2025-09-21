@@ -1,4 +1,4 @@
-# The Travel Index
+# TravelMint
 
 A full-stack travel packages app where users discover, rate, and book trips; admins manage packages, users, and payments. Includes **email verification**, **forgot/reset password**, and **Razorpay** payment gateway.
 
@@ -10,11 +10,11 @@ A full-stack travel packages app where users discover, rate, and book trips; adm
 - 📄 Package page: carousel, price (with discount badge), details, ratings & reviews  
 - ⭐ Rate/review (1 per user per package)  
 - 💳 Book & pay via **Razorpay PG**  
-- 👤 Profile (update username, email, **city**, phone) + change password  
+- 👤 Profile (update username, email, city, phone) + change password  
 - ✉️ **Email verification** flow  
 - 🔐 **Forgot / Reset password** via email link  
 - 📦 Admin dashboard: Add/Update/Delete packages, list users, bookings + chart, payments, ratings/reviews, history  
-- 🖼️ Image uploads to Firebase Storage (≤5 images, ≤2 MB each)  
+- 🖼️ Image uploads to Firebase Storage
 
 ---
 
