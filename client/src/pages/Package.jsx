@@ -163,6 +163,7 @@ const Package = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(ratingsData),
+        credentials: "include",
       });
       const data = await res.json();
       if (data?.success) {

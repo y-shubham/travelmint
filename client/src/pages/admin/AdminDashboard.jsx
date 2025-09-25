@@ -85,6 +85,7 @@ const AdminDashboard = () => {
                 method: "POST",
                 headers: { "Content-Type": " application/json" },
                 body: JSON.stringify({ avatar: downloadUrl }),
+                credentials: "include",
               }
             );
             const data = await res.json();

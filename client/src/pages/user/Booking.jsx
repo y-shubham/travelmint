@@ -149,6 +149,7 @@ const Booking = () => {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(bookingPayload),
+                credentials: "include",
               }
             );
             const result = await res.json();
