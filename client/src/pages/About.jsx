@@ -43,7 +43,7 @@ const About = () => {
                 <ul className="flex flex-wrap gap-3">
                   <li>
                     <a
-                      href="https://github.com/printshubham"
+                      href="https://github.com/y-shubham"
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-2 rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-800 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300"
