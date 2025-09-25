@@ -26,10 +26,13 @@ mongoose
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.log(err));
 
+// --- Trust proxy ---
+app.set("trust proxy", 1);
+
 // --- CORS ---
 app.use(
   cors({
-    origin: process.env.BASE_URL, // http://localhost:5173
+    origin: process.env.BASE_URL, // https://travelmint-phi.vercel.app
     credentials: true,
   })
 );

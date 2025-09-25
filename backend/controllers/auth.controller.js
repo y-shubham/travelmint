@@ -15,11 +15,11 @@ export const signupController = async (req, res) => {
     if (!username || !email || !password || !phone) {
       return res
         .status(200)
-        .send({ success: false, message: "All fields are required!" });
+        .json({ success: false, message: "All fields are required!" });
     }
 
     if (!process.env.JWT_EMAIL_SECRET || !process.env.BASE_URL) {
-      return res.status(500).send({
+      return res.status(500).json({
         success: false,
         message:
           "Server misconfigured: email verification settings missing. Contact admin.",
@@ -30,7 +30,7 @@ export const signupController = async (req, res) => {
     if (userExists) {
       return res
         .status(200)
-        .send({ success: false, message: "User already exists please login" });
+        .json({ success: false, message: "User already exists please login" });
     }
 
     const hashedPassword = bcryptjs.hashSync(password, 10);
@@ -59,14 +59,14 @@ export const signupController = async (req, res) => {
         html: verificationEmail(username, link),
       });
 
-      return res.status(201).send({
+      return res.status(201).json({
         success: true,
         message: "User created. Check your email to verify your account.",
       });
     } catch (mailErr) {
       console.error("Signup mail error:", mailErr?.message || mailErr);
       await User.findByIdAndDelete(newUser._id);
-      return res.status(500).send({
+      return res.status(500).json({
         success: false,
         message:
           "We couldn't send the verification email. Please try again later.",
@@ -76,7 +76,7 @@ export const signupController = async (req, res) => {
     console.log("Signup error:", error?.message || error);
     return res
       .status(500)
-      .send({ success: false, message: "Error in server!" });
+      .json({ success: false, message: "Error in server!" });
   }
 };
 
@@ -86,18 +86,18 @@ export const loginController = async (req, res) => {
     if (!email || !password) {
       return res
         .status(200)
-        .send({ success: false, message: "All fields are required!" });
+        .json({ success: false, message: "All fields are required!" });
     }
 
     const validUser = await User.findOne({ email });
     if (!validUser)
       return res
         .status(404)
-        .send({ success: false, message: "User not found!" });
+        .json({ success: false, message: "User not found!" });
 
     // block unverified
     if (!validUser.isVerified) {
-      return res.status(403).send({
+      return res.status(403).json({
         success: false,
         message: "Please verify your email before logging in.",
       });
@@ -107,33 +107,51 @@ export const loginController = async (req, res) => {
     if (!validPassword) {
       return res
         .status(200)
-        .send({ success: false, message: "Invalid email or password" });
+        .json({ success: false, message: "Invalid email or password" });
     }
 
-    const token = await jwt.sign(
-      { id: validUser._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "4d" }
-    );
+    const token = jwt.sign({ id: validUser._id }, process.env.JWT_SECRET, {
+      expiresIn: "4d",
+    });
+
     const { password: pass, ...rest } = validUser._doc;
+
+    // IMPORTANT for Render (API) + Vercel (client) cross-site cookie
     res
       .cookie("X_TTMS_access_token", token, {
         httpOnly: true,
+        sameSite: "None",
+        secure: true,
         maxAge: 4 * 24 * 60 * 60 * 1000,
       })
       .status(200)
-      .send({ success: true, message: "Login Success", user: rest });
+      .json({ success: true, message: "Login Success", user: rest });
   } catch (error) {
-    console.log(error);
+    console.error("Login error:", error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Something went wrong. Please try again.",
+      });
   }
 };
 
 export const logOutController = (req, res) => {
   try {
-    res.clearCookie("X_TTMS_access_token");
-    res.status(200).send({ success: true, message: "Logged out successfully" });
+    res.clearCookie("X_TTMS_access_token", {
+      httpOnly: true,
+      sameSite: "None",
+      secure: true,
+    });
+    return res
+      .status(200)
+      .json({ success: true, message: "Logged out successfully" });
   } catch (error) {
-    console.log(error);
+    console.error("Logout error:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Could not log out" });
   }
 };
 
@@ -150,12 +168,14 @@ export const verifyEmail = async (req, res) => {
     if (!user)
       return res
         .status(400)
-        .send({ success: false, message: "User not found" });
-    res.send({ success: true, message: "Email verified. You can log in now." });
+        .json({ success: false, message: "User not found" });
+    return res
+      .status(200)
+      .json({ success: true, message: "Email verified. You can log in now." });
   } catch (e) {
-    res
+    return res
       .status(400)
-      .send({ success: false, message: "Invalid or expired token" });
+      .json({ success: false, message: "Invalid or expired token" });
   }
 };
 
@@ -166,7 +186,7 @@ export const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
     // respond 200 either way
     if (!user)
-      return res.send({
+      return res.status(200).json({
         success: true,
         message: "If that email exists, you'll receive a link.",
       });
@@ -175,21 +195,22 @@ export const forgotPassword = async (req, res) => {
     const link = `${
       process.env.BASE_URL
     }/reset-password?token=${encodeURIComponent(token)}`;
+
     await sendEmail({
       to: email,
       subject: "Reset your password",
       html: resetEmail(user.username, link),
     });
 
-    res.send({
+    return res.status(200).json({
       success: true,
       message: "If that email exists, you'll receive a link.",
     });
   } catch (e) {
-    console.log(e);
-    res
+    console.error("forgotPassword error:", e);
+    return res
       .status(500)
-      .send({ success: false, message: "Could not send reset link" });
+      .json({ success: false, message: "Could not send reset link" });
   }
 };
 
@@ -202,10 +223,10 @@ export const resetPassword = async (req, res) => {
     await User.findByIdAndUpdate(data._id, {
       $set: { password: hashed, lastPasswordResetAt: new Date() },
     });
-    res.send({ success: true, message: "Password updated" });
+    return res.status(200).json({ success: true, message: "Password updated" });
   } catch (e) {
-    res
+    return res
       .status(400)
-      .send({ success: false, message: "Invalid or expired token" });
+      .json({ success: false, message: "Invalid or expired token" });
   }
 };
