@@ -96,7 +96,6 @@ export const verifyAndBook = async (req, res) => {
       booking,
     } = req.body;
 
-    // 1) Verify payment signature
     const body = `${razorpay_order_id}|${razorpay_payment_id}`;
     const expectedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
@@ -104,12 +103,12 @@ export const verifyAndBook = async (req, res) => {
       .digest("hex");
 
     if (expectedSignature !== razorpay_signature) {
-      return res
-        .status(400)
-        .send({ success: false, message: "Payment verification failed" });
+      return res.status(400).send({
+        success: false,
+        message: "Payment verification failed",
+      });
     }
 
-    // 2) Authorization + basic validation
     if (req.user?.id !== booking?.buyer) {
       return res.status(401).send({
         success: false,
@@ -120,25 +119,67 @@ export const verifyAndBook = async (req, res) => {
     const { packageDetails, buyer, totalPrice, persons, date } = booking || {};
     if (!packageDetails || !buyer || !totalPrice || !persons || !date) {
       return res
-        .status(200)
+        .status(400)
         .send({ success: false, message: "All fields are required!" });
     }
 
-    // 3) Create booking + email
-    const result = await createBookingAndEmail({
+    // Create booking
+    const validPackage = await Package.findById(packageDetails);
+    if (!validPackage) {
+      return res.status(404).send({
+        success: false,
+        message: "Package Not Found!",
+      });
+    }
+
+    const newBooking = await Booking.create({
       packageDetails,
       buyer,
       totalPrice,
       persons,
       date,
+      status: "Booked",
     });
 
-    return res.status(result.status).send({
-      success: result.ok,
-      message: result.message,
+    if (!newBooking) {
+      return res.status(500).send({
+        success: false,
+        message: "Something went wrong!",
+      });
+    }
+
+    // Send confirmation email
+    try {
+      const user = await User.findById(buyer).select("username email");
+      if (user?.email) {
+        const pkgName =
+          validPackage.packageName ||
+          validPackage.name ||
+          `Package #${String(validPackage._id).slice(-6)}`;
+
+        await sendEmail({
+          to: user.email,
+          subject: "Your booking is confirmed",
+          html: bookingEmail(user.username || "there", {
+            id: newBooking._id,
+            packageName: pkgName,
+            startDate: date,
+            endDate: date,
+            guests: persons,
+            total: Number(totalPrice),
+          }),
+        });
+      }
+    } catch (mailErr) {
+      console.log("Booking email error:", mailErr?.message || mailErr);
+    }
+
+    return res.status(201).send({
+      success: true,
+      message: "Package Booked!",
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return res.status(500).send({ success: false, message: "Server error" });
   }
 };
