@@ -3,6 +3,7 @@
     {
       "source": "/api/:path*",
       "destination": "https://travelmint.onrender.com/api/:path*"
-    }
+    },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
