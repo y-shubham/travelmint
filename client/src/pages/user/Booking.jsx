@@ -144,7 +144,7 @@ const Booking = () => {
             };
 
             const res = await fetch(
-              `https://travelmint.onrender.com/api/booking/book-package/${params?.packageId}`,
+              `/api/booking/book-package/${params?.packageId}`,
               {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
