@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  verifyAndBook,
   bookPackage,
   cancelBooking,
   deleteBookingHistory,
