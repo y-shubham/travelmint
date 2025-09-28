@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import Booking from "../models/booking.model.js";
 import Package from "../models/package.model.js";
 import User from "../models/user.model.js";
