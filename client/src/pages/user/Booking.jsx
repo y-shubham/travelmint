@@ -106,16 +106,19 @@ const Booking = () => {
       alert("Please select a date and number of travelers.");
       return;
     }
+
     try {
       setLoading(true);
 
       // Create Razorpay order in paise
       const amountPaise = Math.round(totalPrice * 100);
-      const { data } = await axios.post(`/api/package/razorpay/create-order`, {
-        amount: amountPaise,
-      });
+      const { data } = await axios.post(
+        `/api/package/razorpay/create-order`,
+        { amount: amountPaise },
+        { withCredentials: true }
+      );
+
       if (!data?.success) {
-        setLoading(false);
         alert("Failed to create payment order");
         return;
       }
@@ -127,46 +130,43 @@ const Booking = () => {
         name: "TravelMint",
         description: pkg.packageName,
         order_id: data.order.id,
-        prefill: {
-          name: currentUser?.username,
-          email: currentUser?.email,
-          contact: currentUser?.phone,
-        },
-        handler: async () => {
+
+        handler: async (rzpResp) => {
           try {
-            // Build booking payload without mutating state
             const bookingPayload = {
-              totalPrice,
               packageDetails: params?.packageId,
               buyer: currentUser?._id,
+              totalPrice,
               persons,
               date,
             };
 
-            const res = await fetch(
-              `/api/booking/book-package/${params?.packageId}`,
+            const verifyRes = await axios.post(
+              `/api/booking/verify-and-book`,
               {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(bookingPayload),
-                credentials: "include",
-              }
+                razorpay_order_id: rzpResp.razorpay_order_id,
+                razorpay_payment_id: rzpResp.razorpay_payment_id,
+                razorpay_signature: rzpResp.razorpay_signature,
+                booking: bookingPayload,
+              },
+              { withCredentials: true }
             );
-            const result = await res.json();
-            setLoading(false);
-            if (result?.success) {
-              alert(result?.message || "Booking successful!");
+
+            if (verifyRes?.data?.success) {
+              alert(verifyRes?.data?.message || "Booking successful!");
               navigate(
                 `/profile/${currentUser?.user_role === 1 ? "admin" : "user"}`
               );
             } else {
-              alert(result?.message || "Booking failed");
+              alert(verifyRes?.data?.message || "Booking failed");
             }
-          } catch (e) {
-            setLoading(false);
+          } catch {
             alert("Booking failed");
+          } finally {
+            setLoading(false);
           }
         },
+
         modal: {
           ondismiss: () => setLoading(false),
         },
@@ -174,9 +174,9 @@ const Booking = () => {
 
       const rzp = new window.Razorpay(options);
       rzp.open();
-    } catch (error) {
-      setLoading(false);
+    } catch {
       alert("Payment init failed");
+      setLoading(false);
     }
   };
 

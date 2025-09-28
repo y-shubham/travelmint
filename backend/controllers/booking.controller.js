@@ -86,6 +86,62 @@ export const bookPackage = async (req, res) => {
   }
 };
 
+export const verifyAndBook = async (req, res) => {
+  try {
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      booking,
+    } = req.body;
+
+    // 1) Verify payment signature
+    const body = `${razorpay_order_id}|${razorpay_payment_id}`;
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_SECRET)
+      .update(body)
+      .digest("hex");
+
+    if (expectedSignature !== razorpay_signature) {
+      return res
+        .status(400)
+        .send({ success: false, message: "Payment verification failed" });
+    }
+
+    // 2) Authorization + basic validation
+    if (req.user?.id !== booking?.buyer) {
+      return res.status(401).send({
+        success: false,
+        message: "You can only buy on your account!",
+      });
+    }
+
+    const { packageDetails, buyer, totalPrice, persons, date } = booking || {};
+    if (!packageDetails || !buyer || !totalPrice || !persons || !date) {
+      return res
+        .status(200)
+        .send({ success: false, message: "All fields are required!" });
+    }
+
+    // 3) Create booking + email
+    const result = await createBookingAndEmail({
+      packageDetails,
+      buyer,
+      totalPrice,
+      persons,
+      date,
+    });
+
+    return res.status(result.status).send({
+      success: result.ok,
+      message: result.message,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).send({ success: false, message: "Server error" });
+  }
+};
+
 // get current bookings for admin
 export const getCurrentBookings = async (req, res) => {
   try {

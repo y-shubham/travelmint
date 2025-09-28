@@ -13,6 +13,8 @@ import ensureVerified from "../middlewares/ensureVerified.js";
 
 const router = express.Router();
 
+router.post("/verify-and-book", requireSignIn, verifyAndBook);
+
 // Book package (must be signed in + verified)
 router.post(
   "/book-package/:packageId",
