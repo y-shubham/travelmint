@@ -148,36 +148,39 @@ export const verifyAndBook = async (req, res) => {
       });
     }
 
-    // Send confirmation email
-    try {
-      const user = await User.findById(buyer).select("username email");
-      if (user?.email) {
-        const pkgName =
-          validPackage.packageName ||
-          validPackage.name ||
-          `Package #${String(validPackage._id).slice(-6)}`;
-
-        await sendEmail({
-          to: user.email,
-          subject: "Your booking is confirmed",
-          html: bookingEmail(user.username || "there", {
-            id: newBooking._id,
-            packageName: pkgName,
-            startDate: date,
-            endDate: date,
-            guests: persons,
-            total: Number(totalPrice),
-          }),
-        });
-      }
-    } catch (mailErr) {
-      console.log("Booking email error:", mailErr?.message || mailErr);
-    }
-
-    return res.status(201).send({
+    // ✅ Respond first so SMTP timeouts can't break the request
+    res.status(201).send({
       success: true,
       message: "Package Booked!",
     });
+
+    // 🔔 Fire-and-forget confirmation email
+    (async () => {
+      try {
+        const user = await User.findById(buyer).select("username email");
+        if (user?.email) {
+          const pkgName =
+            validPackage.packageName ||
+            validPackage.name ||
+            `Package #${String(validPackage._id).slice(-6)}`;
+
+          await sendEmail({
+            to: user.email,
+            subject: "Your booking is confirmed",
+            html: bookingEmail(user.username || "there", {
+              id: newBooking._id,
+              packageName: pkgName,
+              startDate: date,
+              endDate: date,
+              guests: persons,
+              total: Number(totalPrice),
+            }),
+          });
+        }
+      } catch (mailErr) {
+        console.log("Booking email error:", mailErr?.message || mailErr);
+      }
+    })();
   } catch (error) {
     console.error(error);
     return res.status(500).send({ success: false, message: "Server error" });
