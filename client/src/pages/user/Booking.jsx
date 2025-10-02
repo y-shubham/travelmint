@@ -41,7 +41,10 @@ const Booking = () => {
       setLoading(true);
       setErr("");
       const res = await fetch(
-        `/api/package/get-package-data/${params?.packageId}`
+        `/api/package/get-package-data/${params?.packageId}`,
+        {
+          credentials: "include",
+        }
       );
       const data = await res.json();
       if (data?.success) {
