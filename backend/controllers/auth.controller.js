@@ -123,6 +123,7 @@ export const loginController = async (req, res) => {
         sameSite: "None",
         secure: true,
         maxAge: 4 * 24 * 60 * 60 * 1000,
+        path: "/",
       })
       .status(200)
       .json({ success: true, message: "Login Success", user: rest });

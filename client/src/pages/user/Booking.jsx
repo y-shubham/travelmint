@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router";
 import axios from "axios";
 import { formatINR } from "../../utils/formatCurrency"
+axios.defaults.withCredentials = true;
 
 const loadRazorpay = () =>
   new Promise((resolve) => {
