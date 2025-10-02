@@ -4,7 +4,6 @@ import { useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router";
 import axios from "axios";
 import { formatINR } from "../../utils/formatCurrency"
-axios.defaults.withCredentials = true;
 
 const loadRazorpay = () =>
   new Promise((resolve) => {
@@ -145,24 +144,29 @@ const Booking = () => {
               date,
             };
 
-            const verifyRes = await axios.post(
-              `/api/booking/verify-and-book`,
-              {
+            const verifyRes = await fetch("/api/booking/verify-and-book", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              credentials: "include",
+              body: JSON.stringify({
                 razorpay_order_id: rzpResp.razorpay_order_id,
                 razorpay_payment_id: rzpResp.razorpay_payment_id,
                 razorpay_signature: rzpResp.razorpay_signature,
                 booking: bookingPayload,
-              },
-              { withCredentials: true }
-            );
+              }),
+            });
 
-            if (verifyRes?.data?.success) {
-              alert(verifyRes?.data?.message || "Booking successful!");
+            const data = await verifyRes.json();
+
+            if (data?.success) {
+              alert(data?.message || "Booking successful!");
               navigate(
                 `/profile/${currentUser?.user_role === 1 ? "admin" : "user"}`
               );
             } else {
-              alert(verifyRes?.data?.message || "Booking failed");
+              alert(data?.message || "Booking failed");
             }
           } catch {
             alert("Booking failed");
