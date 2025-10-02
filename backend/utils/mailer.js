@@ -33,6 +33,8 @@ function buildTransporter() {
     port,
     secure: port === 465, // true for 465
     auth: { user, pass },
+    tls: { minVersion: "TLSv1.2" },
+    pool: true,
   });
 }
 
